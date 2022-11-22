@@ -1,3 +1,4 @@
+const { BlockForkEvent } = require("@ethersproject/abstract-provider");
 const { messagePrefix } = require("@ethersproject/hash");
 const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const { expect } = require("chai");
@@ -74,8 +75,8 @@ describe("Put an NFT for sale", function () {
       100
     );
 
-    await artGalleryInstance.sellArtwork(0, 100);
-    expect(await artGalleryInstance.getTokenPrice(0)).to.equal(100);
+    await artGalleryInstance.sellArtwork(0, 1 * 10 ** 15);
+    expect(await artGalleryInstance.getTokenPrice(0)).to.equal(1 * 10 ** 15);
   });
 });
 describe("Buy an NFT", function () {
@@ -85,7 +86,7 @@ describe("Buy an NFT", function () {
     );
 
     let buyToken = await artGalleryInstanceForFirstUser.buyArtwork(0, {
-      value: ethers.utils.parseUnits("100.0", "wei"),
+      value: ethers.utils.parseUnits(`${1 * 10 ** 15}`, "wei"),
     });
     buyToken.wait();
 
@@ -98,7 +99,7 @@ describe("Buy an NFT", function () {
       "https://bafybeicp7bwqf2awghts5fseqrlol7xrpt3ne66whsm2uzric6lysjdjam.ipfs.nftstorage.link/data/";
     await artGalleryInstance.publishArtwork(
       tokenUri,
-      500,
+      5 * 10 ** 15,
       signers.firstUser.address,
       100
     );
@@ -116,7 +117,7 @@ describe("Buy an NFT", function () {
     );
 
     let buyToken = await artGalleryInstanceForSecondUser.buyArtwork(3, {
-      value: ethers.utils.parseUnits("500.0", "wei"),
+      value: ethers.utils.parseUnits(`${5 * 10 ** 15}`, "wei"),
     });
     let updatedBalance = initialBalance + buyToken.value.toNumber() / 100;
     let getNewBalance = (
@@ -139,23 +140,27 @@ describe("Buy an NFT", function () {
 });
 describe("Withdraw Ethers", function () {
   it("Should allow the owner to withdraw ethers", async function () {
-    let ownerBalance = (
-      await artGalleryInstance.getAddressBalance(signers.deployer.address)
-    ).toBigInt();
-    console.log(ownerBalance);
-    let amountToWithdraw = (
-      await artGalleryInstance.getAddressBalance(artGalleryAddr)
-    ).toBigInt();
-    console.log(ownerBalance + amountToWithdraw);
+    let ownerBalance = await artGalleryInstance.getAddressBalance(
+      signers.deployer.address
+    );
+
+    let contractBalance = await artGalleryInstance.getAddressBalance(
+      artGalleryAddr
+    );
+
     let withdrawal = await artGalleryInstance.withdraw(
       signers.deployer.address
     );
-    withdrawal.wait();
-    let ownerNewBalance = (
-      await artGalleryInstance.getAddressBalance(signers.deployer.address)
-    ).toBigInt();
+    let recipt = await withdrawal.wait();
 
-    expect(ownerNewBalance).to.equal(ownerBalance + amountToWithdraw);
+    let gasFee = recipt.gasUsed.mul(recipt.effectiveGasPrice);
+    let amountToWithdraw = ownerBalance.add(contractBalance).sub(gasFee);
+
+    let ownerNewBalance = await artGalleryInstance.getAddressBalance(
+      signers.deployer.address
+    );
+
+    expect(ownerNewBalance).to.equal(amountToWithdraw);
   });
   // it("Should be made by the owner", async function () {
   //   let fistUserInstance = artGalleryInstance.connect(signers.firstUser);

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.3;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Royalty.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -60,6 +60,7 @@ contract ArtGallery is Ownable {
 	function withdraw(address _to) public onlyOwner {
 		uint256 balanceAmount = address(this).balance;
 		payable(_to).transfer(balanceAmount);
+       
 	}	
 
     function getTokenPrice(uint _tokenId) public view returns (uint _price) {
